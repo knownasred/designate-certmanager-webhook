@@ -31,5 +31,6 @@ jobs:
         with:
           config: .cr.yaml
           mark_as_latest: false # We want the actual software tag to be latest
+          charts_dir: helm
         env:
           CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
