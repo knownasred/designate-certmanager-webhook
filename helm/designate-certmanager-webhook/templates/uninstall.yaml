@@ -15,7 +15,7 @@ spec:
   template:
     spec:
       restartPolicy: Never
-      serviceAccountName: {{ include "designate-certmanager-webhook.fullname" . }}
+      serviceAccountName: {{ include "designate-certmanager-webhook.fullname" . }}:uninstall
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
@@ -80,13 +80,13 @@ roleRef:
 subjects:
   - apiGroup: ""
     kind: ServiceAccount
-    name: {{ include "designate-certmanager-webhook.fullname" . }}
+    name: {{ include "designate-certmanager-webhook.fullname" . }}:uninstall
     namespace: {{ .Release.Namespace }}
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: {{ include "designate-certmanager-webhook.fullname" . }}
+  name: {{ include "designate-certmanager-webhook.fullname" . }}:uninstall
   namespace: {{ .Release.Namespace }}
   labels:
     app: {{ include "designate-certmanager-webhook.name" . }}
