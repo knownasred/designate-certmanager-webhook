@@ -14,14 +14,14 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"net"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 
-	"github.com/gophercloud/gophercloud"
-	"github.com/gophercloud/gophercloud/openstack"
+	"github.com/gophercloud/gophercloud/v2"
+	"github.com/gophercloud/gophercloud/v2/openstack"
 
 	"github.com/kubernetes-incubator/external-dns/pkg/tlsutils"
 	log "github.com/sirupsen/logrus"
@@ -54,17 +54,11 @@ func getAuthSettings() (gophercloud.AuthOptions, error) {
 		return gophercloud.AuthOptions{}, err
 	}
 	opts.AllowReauth = true
-	if !strings.HasSuffix(opts.IdentityEndpoint, "/") {
-		opts.IdentityEndpoint += "/"
-	}
-	if !strings.HasSuffix(opts.IdentityEndpoint, "/v2.0/") && !strings.HasSuffix(opts.IdentityEndpoint, "/v3/") {
-		opts.IdentityEndpoint += "v2.0/"
-	}
 	return opts, nil
 }
 
 // authenticate in OpenStack and obtain Designate service endpoint
-func createDesignateServiceClient() (*gophercloud.ServiceClient, error) {
+func createDesignateServiceClient(ctx context.Context) (*gophercloud.ServiceClient, error) {
 	opts, err := getAuthSettings()
 	if err != nil {
 		return nil, err
@@ -94,7 +88,7 @@ func createDesignateServiceClient() (*gophercloud.ServiceClient, error) {
 	}
 	authProvider.HTTPClient.Transport = transport
 
-	if err = openstack.Authenticate(authProvider, opts); err != nil {
+	if err = openstack.Authenticate(ctx, authProvider, opts); err != nil {
 		return nil, err
 	}
 

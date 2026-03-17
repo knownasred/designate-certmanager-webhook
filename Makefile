@@ -1,4 +1,4 @@
-IMAGE_NAME := "syseleven/designate-certmanager-webhook"
+IMAGE_NAME := "knownasred/designate-certmanager-webhook"
 IMAGE_TAG  ?= $(shell git describe --tags --always --dirty)
 
 build:

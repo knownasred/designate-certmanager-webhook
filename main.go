@@ -1,13 +1,14 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"strings"
 
-	"github.com/gophercloud/gophercloud"
-	"github.com/gophercloud/gophercloud/openstack/dns/v2/recordsets"
-	"github.com/gophercloud/gophercloud/openstack/dns/v2/zones"
+	"github.com/gophercloud/gophercloud/v2"
+	"github.com/gophercloud/gophercloud/v2/openstack/dns/v2/recordsets"
+	"github.com/gophercloud/gophercloud/v2/openstack/dns/v2/zones"
 
 	log "github.com/sirupsen/logrus"
 	"k8s.io/client-go/rest"
@@ -30,7 +31,7 @@ type designateDNSProviderSolver struct {
 }
 
 func New() webhook.Solver {
-	client, err := createDesignateServiceClient()
+	client, err := createDesignateServiceClient(context.Background())
 	if err != nil {
 		panic(fmt.Errorf("%v", err))
 	}
@@ -46,11 +47,13 @@ func (c *designateDNSProviderSolver) Name() string {
 func (c *designateDNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) error {
 	log.Debugf("Present() called ch.DNSName=%s ch.ResolvedZone=%s ch.ResolvedFQDN=%s ch.Type=%s", ch.DNSName, ch.ResolvedZone, ch.ResolvedFQDN, ch.Type)
 
+	ctx := context.Background()
+
 	listOpts := zones.ListOpts{
 		Name: ch.ResolvedZone,
 	}
 
-	allPages, err := zones.List(c.client, listOpts).AllPages()
+	allPages, err := zones.List(c.client, listOpts).AllPages(ctx)
 	if err != nil {
 		return err
 	}
@@ -69,7 +72,7 @@ func (c *designateDNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) erro
 	opts.Type = "TXT"
 	opts.Records = []string{quoteRecord(ch.Key)}
 
-	_, err = recordsets.Create(c.client, allZones[0].ID, opts).Extract()
+	_, err = recordsets.Create(ctx, c.client, allZones[0].ID, opts).Extract()
 	if err != nil {
 		return err
 	}
@@ -80,11 +83,13 @@ func (c *designateDNSProviderSolver) Present(ch *v1alpha1.ChallengeRequest) erro
 func (c *designateDNSProviderSolver) CleanUp(ch *v1alpha1.ChallengeRequest) error {
 	log.Debugf("CleanUp called ch.ResolvedZone=%s ch.ResolvedFQDN=%s", ch.ResolvedZone, ch.ResolvedFQDN)
 
+	ctx := context.Background()
+
 	listOpts := zones.ListOpts{
 		Name: ch.ResolvedZone,
 	}
 
-	allPages, err := zones.List(c.client, listOpts).AllPages()
+	allPages, err := zones.List(c.client, listOpts).AllPages(ctx)
 	if err != nil {
 		return err
 	}
@@ -104,7 +109,7 @@ func (c *designateDNSProviderSolver) CleanUp(ch *v1alpha1.ChallengeRequest) erro
 		Data: quoteRecord(ch.Key),
 	}
 
-	allRecordPages, err := recordsets.ListByZone(c.client, allZones[0].ID, recordListOpts).AllPages()
+	allRecordPages, err := recordsets.ListByZone(c.client, allZones[0].ID, recordListOpts).AllPages(ctx)
 
 	if err != nil {
 		return err
@@ -120,7 +125,7 @@ func (c *designateDNSProviderSolver) CleanUp(ch *v1alpha1.ChallengeRequest) erro
 	}
 
 	// TODO rather than deleting the whole recordset we may have to delete individual records from it, i.e. perform an update rather than a delete
-	err = recordsets.Delete(c.client, allZones[0].ID, allRRs[0].ID).ExtractErr()
+	err = recordsets.Delete(ctx, c.client, allZones[0].ID, allRRs[0].ID).ExtractErr()
 	if err != nil {
 		return err
 	}
@@ -130,7 +135,7 @@ func (c *designateDNSProviderSolver) CleanUp(ch *v1alpha1.ChallengeRequest) erro
 func (c *designateDNSProviderSolver) Initialize(kubeClientConfig *rest.Config, stopCh <-chan struct{}) error {
 	log.Debugf("Initialize called")
 
-	cl, err := createDesignateServiceClient()
+	cl, err := createDesignateServiceClient(context.Background())
 	if err != nil {
 		return err
 	}
