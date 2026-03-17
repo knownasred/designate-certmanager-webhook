@@ -5,8 +5,8 @@ certManager:
   serviceAccountName: cert-manager
 
 image:
-  repository: syseleven/designate-certmanager-webhook
-  tag: 0.2.18
+  repository: knownasred/designate-certmanager-webhook
+  tag: v0.1.0
   pullPolicy: IfNotPresent
 
 alpine:
